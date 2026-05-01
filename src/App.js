@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -10,7 +10,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-const API = "https://land-marketplace-api.onrender.com/api";
+const API = "https://land-marketplace.onrender.com/api";
 const UPLOADS = "https://land-marketplace-api.onrender.com/api/images/serve";
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
@@ -135,8 +135,12 @@ const injectStyles = () => {
 };
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
+// FIX #2: Added onClose to useEffect dependency array so ESLint no-undef is satisfied
 const Toast = ({ message, type, onClose }) => {
-  useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [fetchLands]);
+  useEffect(() => {
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [onClose]);
   return <div className={`toast toast-${type}`}>{message}</div>;
 };
 
@@ -207,7 +211,7 @@ const ImageGallery = ({ images }) => {
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ position: "relative" }}>
-       <img src={`${UPLOADS}/${images[active].imagePath}`}
+        <img src={`${UPLOADS}/${images[active].imagePath}`}
           alt="Land"
           className="gallery-main"
           onClick={() => setLightbox(true)}
@@ -295,7 +299,6 @@ const ImageUpload = ({ landId, token, showToast, existingImages = [], onImagesCh
 
   return (
     <div>
-      {/* Existing uploaded images */}
       {images.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <p style={{ fontSize: 13, color: "var(--soil)", marginBottom: 8, fontWeight: 600 }}>Uploaded Images ({images.length}/3)</p>
@@ -310,7 +313,6 @@ const ImageUpload = ({ landId, token, showToast, existingImages = [], onImagesCh
         </div>
       )}
 
-      {/* Preview new images */}
       {previews.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <p style={{ fontSize: 13, color: "var(--soil)", marginBottom: 8, fontWeight: 600 }}>New Images (not uploaded yet)</p>
@@ -328,7 +330,6 @@ const ImageUpload = ({ landId, token, showToast, existingImages = [], onImagesCh
         </div>
       )}
 
-      {/* Upload zone */}
       {totalCount < 3 && (
         <label className="upload-zone" style={{ display: "block", cursor: "pointer" }}>
           <input type="file" accept="image/*" multiple onChange={handleFileSelect} style={{ display: "none" }} />
@@ -413,7 +414,7 @@ const LandCard = ({ land, onClick }) => {
     <div className="card" onClick={onClick} style={{ cursor: "pointer" }}>
       <div style={{ height: 180, position: "relative", overflow: "hidden" }}>
         {cardImage ? (
-<img src={`${UPLOADS}/${cardImage.imagePath}`} alt={land.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={`${UPLOADS}/${cardImage.imagePath}`} alt={land.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ height: "100%", background: "linear-gradient(135deg, var(--moss) 0%, var(--sage) 50%, var(--wheat) 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 48 }}>🌿</span>
@@ -449,18 +450,24 @@ const HomePage = ({ setPage, setSelectedLand }) => {
   const [search, setSearch] = useState({ city: "", state: "", landType: "" });
   const [pagination, setPagination] = useState({ page: 0, totalPages: 0, totalElements: 0 });
 
-  const fetchLands = async (page = 0) => {
+  // FIX #1: Wrapped fetchLands in useCallback so it is a stable, named function
+  // reference — eliminates the no-undef lint error that occurred when the function
+  // was referenced inside useEffect before its declaration was hoisted.
+  const fetchLands = useCallback(async (pageNum = 0) => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page, size: 9, sortBy: "createdAt" });
+      const params = new URLSearchParams({ page: pageNum, size: 9, sortBy: "createdAt" });
       Object.entries(search).forEach(([k, v]) => v && params.append(k, v));
       const isSearch = Object.values(search).some(Boolean);
       const endpoint = isSearch ? `/lands/search?${params}` : `/lands?${params}`;
       const res = await api.get(endpoint);
-      if (res.success) { setLands(res.data.content || []); setPagination({ page, totalPages: res.data.totalPages, totalElements: res.data.totalElements }); }
+      if (res.success) {
+        setLands(res.data.content || []);
+        setPagination({ page: pageNum, totalPages: res.data.totalPages, totalElements: res.data.totalElements });
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
-  };
+  }, [search]);
 
   useEffect(() => { fetchLands(); }, [fetchLands]);
 
@@ -563,10 +570,7 @@ const LandDetail = ({ land, setPage, showToast }) => {
         <button onClick={() => setPage("home")} style={{ background: "none", color: "var(--clay)", fontWeight: 600, marginBottom: 20, padding: 0, fontSize: 14 }}>← Back to Listings</button>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 32, alignItems: "start" }}>
           <div>
-            {/* Image Gallery */}
             <ImageGallery images={images} />
-
-            {/* Mini Map */}
             {hasLocation && (
               <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 24, border: "2px solid var(--wheat)" }}>
                 <MapContainer center={[land.latitude, land.longitude]} zoom={14} style={{ height: 220, width: "100%" }}>
@@ -575,7 +579,6 @@ const LandDetail = ({ land, setPage, showToast }) => {
                 </MapContainer>
               </div>
             )}
-
             <div className="card" style={{ padding: 28, marginBottom: 24 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
                 <h1 style={{ fontSize: 26, lineHeight: 1.3 }}>{land.title}</h1>
@@ -891,8 +894,6 @@ const PostLandPage = ({ setPage, showToast, editLand = null }) => {
       <div className="container" style={{ maxWidth: 720 }}>
         <button onClick={() => setPage("my-listings")} style={{ background: "none", color: "var(--clay)", fontWeight: 600, marginBottom: 20, padding: 0 }}>← Back</button>
         <h2 style={{ fontSize: 28, marginBottom: 8 }}>{editLand ? "Edit Land" : "Post Your Land"} 🏡</h2>
-
-        {/* Steps indicator */}
         <div style={{ display: "flex", gap: 0, marginBottom: 32 }}>
           {[["1","Land Details"],["2","Add Photos 📸"]].map(([num, label], i) => (
             <div key={num} style={{ flex: 1, textAlign: "center", padding: "10px", background: step === i+1 ? "var(--clay)" : step > i+1 ? "var(--green)" : "white", color: step >= i+1 ? "white" : "var(--gray)", borderRadius: i === 0 ? "10px 0 0 10px" : "0 10px 10px 0", fontWeight: 600, fontSize: 14, border: "1.5px solid #ddd" }}>
@@ -900,7 +901,6 @@ const PostLandPage = ({ setPage, showToast, editLand = null }) => {
             </div>
           ))}
         </div>
-
         {step === 1 && (
           <div className="card" style={{ padding: 32 }}>
             <Section title="Basic Information">
@@ -950,7 +950,6 @@ const PostLandPage = ({ setPage, showToast, editLand = null }) => {
             </div>
           </div>
         )}
-
         {step === 2 && savedLandId && (
           <div className="card" style={{ padding: 32 }}>
             <h3 style={{ fontSize: 20, marginBottom: 8 }}>📸 Add Photos</h3>
@@ -981,14 +980,14 @@ const MyListingsPage = ({ setPage, setSelectedLand, setEditLand, showToast }) =>
   const [loading, setLoading] = useState(true);
   const [expandedImages, setExpandedImages] = useState(null);
 
-  const fetchMyLands = async () => {
+  const fetchMyLands = useCallback(async () => {
     setLoading(true);
     const res = await api.get("/lands/my-listings", token);
     if (res.success) setLands(res.data || []);
     setLoading(false);
-  };
+  }, [token]);
 
-  useEffect(() => { fetchMyLands(); }, [onClose]);
+  useEffect(() => { fetchMyLands(); }, [fetchMyLands]);
 
   const deleteLand = async (id) => {
     if (!window.confirm("Delete this listing?")) return;
@@ -1023,7 +1022,6 @@ const MyListingsPage = ({ setPage, setSelectedLand, setEditLand, showToast }) =>
                 <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
                   <div style={{ width: 80, height: 80, borderRadius: 12, background: "linear-gradient(135deg, var(--moss), var(--wheat))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, flexShrink: 0, overflow: "hidden" }}>
                     🌿
-                   
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ fontSize: 16, marginBottom: 6 }}>{land.title}</h3>
@@ -1041,7 +1039,6 @@ const MyListingsPage = ({ setPage, setSelectedLand, setEditLand, showToast }) =>
                     <button className="btn-danger" onClick={() => deleteLand(land.id)} style={{ padding: "8px 14px" }}>Delete</button>
                   </div>
                 </div>
-                {/* Expanded image manager */}
                 {expandedImages === land.id && (
                   <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #eee" }}>
                     <h4 style={{ marginBottom: 16, color: "var(--soil)" }}>📸 Manage Photos</h4>
