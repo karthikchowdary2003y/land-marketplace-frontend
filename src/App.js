@@ -136,7 +136,7 @@ const injectStyles = () => {
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
 const Toast = ({ message, type, onClose }) => {
-  useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, []);
+  useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [fetchLands]);
   return <div className={`toast toast-${type}`}>{message}</div>;
 };
 
@@ -462,7 +462,7 @@ const HomePage = ({ setPage, setSelectedLand }) => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchLands(); }, []);
+  useEffect(() => { fetchLands(); }, [fetchLands]);
 
   return (
     <div className="page">
@@ -988,7 +988,7 @@ const MyListingsPage = ({ setPage, setSelectedLand, setEditLand, showToast }) =>
     setLoading(false);
   };
 
-  useEffect(() => { fetchMyLands(); }, []);
+  useEffect(() => { fetchMyLands(); }, [onClose]);
 
   const deleteLand = async (id) => {
     if (!window.confirm("Delete this listing?")) return;
