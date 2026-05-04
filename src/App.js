@@ -10,8 +10,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-const API = "https://land-marketplace.onrender.com/api";
-const UPLOADS = "https://land-marketplace-api.onrender.com/api/images/serve";
+const BASE    = "https://land-marketplace.onrender.com";
+const API     = `${BASE}/api`;
+const UPLOADS = `${BASE}/api/images/serve`;
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
 
