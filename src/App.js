@@ -13,6 +13,7 @@ L.Icon.Default.mergeOptions({
 const BASE    = "https://land-marketplace.onrender.com";
 const API     = `${BASE}/api`;
 const UPLOADS = `${BASE}/api/images/serve`;
+
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
 
@@ -23,6 +24,8 @@ const api = {
     });
     return res.json();
   },
+  // FIX 1: Added error handling — checks res.ok before calling res.json(),
+  // so HTTP 4xx/5xx errors are returned as { success: false } instead of throwing.
   post: async (path, body, token) => {
     const res = await fetch(`${API}${path}`, {
       method: "POST",
@@ -32,6 +35,10 @@ const api = {
       },
       body: JSON.stringify(body),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, message: err.message || `Server error ${res.status}` };
+    }
     return res.json();
   },
   put: async (path, body, token) => {
@@ -136,7 +143,6 @@ const injectStyles = () => {
 };
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
-// FIX #2: Added onClose to useEffect dependency array so ESLint no-undef is satisfied
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => {
     const t = setTimeout(onClose, 4000);
@@ -451,9 +457,6 @@ const HomePage = ({ setPage, setSelectedLand }) => {
   const [search, setSearch] = useState({ city: "", state: "", landType: "" });
   const [pagination, setPagination] = useState({ page: 0, totalPages: 0, totalElements: 0 });
 
-  // FIX #1: Wrapped fetchLands in useCallback so it is a stable, named function
-  // reference — eliminates the no-undef lint error that occurred when the function
-  // was referenced inside useEffect before its declaration was hoisted.
   const fetchLands = useCallback(async (pageNum = 0) => {
     setLoading(true);
     try {
@@ -553,13 +556,36 @@ const LandDetail = ({ land, setPage, showToast }) => {
 
   if (!land) return null;
 
+  // FIX 2: Added validation, try/catch, and finally so setSending(false) ALWAYS
+  // runs — even if the network throws (e.g. Render cold start timeout).
+  // Previously the button would freeze on "Sending..." forever on any error.
   const sendInquiry = async () => {
+    if (!inquiry.message.trim()) {
+      showToast("Please enter a message", "error");
+      return;
+    }
+    if (!user && (!inquiry.buyerName.trim() || !inquiry.buyerPhone.trim() || !inquiry.buyerEmail.trim())) {
+      showToast("Please fill in your name, phone and email", "error");
+      return;
+    }
     setSending(true);
-    const body = user ? { message: inquiry.message } : { message: inquiry.message, buyerName: inquiry.buyerName, buyerPhone: inquiry.buyerPhone, buyerEmail: inquiry.buyerEmail };
-    const res = await api.post(`/inquiries/land/${land.id}`, body, token);
-    setSending(false);
-    if (res.success) { setSent(true); showToast("Inquiry sent!", "success"); }
-    else showToast(res.message || "Failed", "error");
+    try {
+      const body = user
+        ? { message: inquiry.message }
+        : { message: inquiry.message, buyerName: inquiry.buyerName, buyerPhone: inquiry.buyerPhone, buyerEmail: inquiry.buyerEmail };
+      const res = await api.post(`/inquiries/land/${land.id}`, body, token);
+      if (res.success) {
+        setSent(true);
+        showToast("Inquiry sent! 📩", "success");
+      } else {
+        showToast(res.message || "Failed to send inquiry", "error");
+      }
+    } catch (err) {
+      console.error("Inquiry error:", err);
+      showToast("Network error — please try again", "error");
+    } finally {
+      setSending(false);
+    }
   };
 
   const statusColor = { AVAILABLE: "var(--green)", SOLD: "var(--red)", UNDER_NEGOTIATION: "orange" }[land.status] || "var(--green)";
