@@ -10,9 +10,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-const BASE    = "https://land-marketplace.onrender.com";
-const API     = `${BASE}/api`;
-const UPLOADS = `${BASE}/api/images/serve`;
+const BASE = "https://land-marketplace.onrender.com";
+const API  = `${BASE}/api`;
 
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
@@ -24,8 +23,6 @@ const api = {
     });
     return res.json();
   },
-  // FIX 1: Added error handling — checks res.ok before calling res.json(),
-  // so HTTP 4xx/5xx errors are returned as { success: false } instead of throwing.
   post: async (path, body, token) => {
     const res = await fetch(`${API}${path}`, {
       method: "POST",
@@ -218,7 +215,9 @@ const ImageGallery = ({ images }) => {
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ position: "relative" }}>
-        <img src={`${UPLOADS}/${images[active].imagePath}`}
+        {/* ✅ FIX 1: Use imageUrl directly (Cloudinary full URL) */}
+        <img
+          src={images[active].imageUrl}
           alt="Land"
           className="gallery-main"
           onClick={() => setLightbox(true)}
@@ -233,7 +232,8 @@ const ImageGallery = ({ images }) => {
           {images.map((img, i) => (
             <img
               key={img.id}
-              src={`${UPLOADS}/${img.imagePath}`}
+              {/* ✅ FIX 2: Use imageUrl directly (Cloudinary full URL) */}
+              src={img.imageUrl}
               alt={`Land ${i + 1}`}
               className={`gallery-thumb ${i === active ? "active" : ""}`}
               onClick={() => setActive(i)}
@@ -245,14 +245,15 @@ const ImageGallery = ({ images }) => {
       {lightbox && (
         <div className="lightbox" onClick={() => setLightbox(false)}>
           <button className="lightbox-close" onClick={() => setLightbox(false)}>✕</button>
-          <img src={`${UPLOADS}/${images[active].imagePath}`} alt="Land" />
+          {/* ✅ FIX 3: Use imageUrl directly (Cloudinary full URL) */}
+          <img src={images[active].imageUrl} alt="Land" />
         </div>
       )}
     </div>
   );
 };
 
-// ─── IMAGE UPLOAD COMPONENT ───────────────────────────────────────────────────
+// ─── IMAGE UPLOAD ─────────────────────────────────────────────────────────────
 const ImageUpload = ({ landId, token, showToast, existingImages = [], onImagesChange }) => {
   const [images, setImages] = useState(existingImages);
   const [previews, setPreviews] = useState([]);
@@ -312,7 +313,8 @@ const ImageUpload = ({ landId, token, showToast, existingImages = [], onImagesCh
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {images.map(img => (
               <div key={img.id} className="image-preview">
-                <img src={`${UPLOADS}/${img.imagePath}`} alt="Land" />
+                {/* ✅ FIX 4: Use imageUrl directly (Cloudinary full URL) */}
+                <img src={img.imageUrl} alt="Land" />
                 <button className="delete-btn" onClick={() => deleteImage(img.id)}>✕</button>
               </div>
             ))}
@@ -421,7 +423,8 @@ const LandCard = ({ land, onClick }) => {
     <div className="card" onClick={onClick} style={{ cursor: "pointer" }}>
       <div style={{ height: 180, position: "relative", overflow: "hidden" }}>
         {cardImage ? (
-          <img src={`${UPLOADS}/${cardImage.imagePath}`} alt={land.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          // ✅ FIX 5: Use imageUrl directly (Cloudinary full URL)
+          <img src={cardImage.imageUrl} alt={land.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ height: "100%", background: "linear-gradient(135deg, var(--moss) 0%, var(--sage) 50%, var(--wheat) 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 48 }}>🌿</span>
@@ -556,17 +559,10 @@ const LandDetail = ({ land, setPage, showToast }) => {
 
   if (!land) return null;
 
-  // FIX 2: Added validation, try/catch, and finally so setSending(false) ALWAYS
-  // runs — even if the network throws (e.g. Render cold start timeout).
-  // Previously the button would freeze on "Sending..." forever on any error.
   const sendInquiry = async () => {
-    if (!inquiry.message.trim()) {
-      showToast("Please enter a message", "error");
-      return;
-    }
+    if (!inquiry.message.trim()) { showToast("Please enter a message", "error"); return; }
     if (!user && (!inquiry.buyerName.trim() || !inquiry.buyerPhone.trim() || !inquiry.buyerEmail.trim())) {
-      showToast("Please fill in your name, phone and email", "error");
-      return;
+      showToast("Please fill in your name, phone and email", "error"); return;
     }
     setSending(true);
     try {
@@ -574,14 +570,9 @@ const LandDetail = ({ land, setPage, showToast }) => {
         ? { message: inquiry.message }
         : { message: inquiry.message, buyerName: inquiry.buyerName, buyerPhone: inquiry.buyerPhone, buyerEmail: inquiry.buyerEmail };
       const res = await api.post(`/inquiries/land/${land.id}`, body, token);
-      if (res.success) {
-        setSent(true);
-        showToast("Inquiry sent! 📩", "success");
-      } else {
-        showToast(res.message || "Failed to send inquiry", "error");
-      }
+      if (res.success) { setSent(true); showToast("Inquiry sent! 📩", "success"); }
+      else showToast(res.message || "Failed to send inquiry", "error");
     } catch (err) {
-      console.error("Inquiry error:", err);
       showToast("Network error — please try again", "error");
     } finally {
       setSending(false);
@@ -633,7 +624,6 @@ const LandDetail = ({ land, setPage, showToast }) => {
               </div>
             </div>
           </div>
-
           <div>
             {land.owner && (
               <div className="card" style={{ padding: 24, marginBottom: 20, border: "2px solid var(--wheat)" }}>
@@ -746,9 +736,6 @@ const ForgotPasswordPage = ({ setPage, showToast }) => {
               <h2 style={{ fontSize: 24, marginBottom: 12 }}>Check Your Email!</h2>
               <p style={{ color: "var(--gray)", marginBottom: 8 }}>Reset link sent to:</p>
               <p style={{ fontWeight: 700, color: "var(--clay)", marginBottom: 24 }}>{email}</p>
-              <div style={{ background: "var(--light)", borderRadius: 12, padding: 16, marginBottom: 24, textAlign: "left" }}>
-                <p style={{ fontSize: 13, color: "var(--soil)", lineHeight: 2 }}>1. Open your email inbox<br />2. Find email from LandMart<br />3. Click the reset link<br />⏰ Expires in 30 minutes!</p>
-              </div>
               <button className="btn-primary" onClick={() => setPage("login")} style={{ width: "100%", padding: 14 }}>Back to Login</button>
             </div>
           ) : (
@@ -1047,9 +1034,7 @@ const MyListingsPage = ({ setPage, setSelectedLand, setEditLand, showToast }) =>
             {lands.map(land => (
               <div key={land.id} className="card" style={{ padding: 24 }}>
                 <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
-                  <div style={{ width: 80, height: 80, borderRadius: 12, background: "linear-gradient(135deg, var(--moss), var(--wheat))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, flexShrink: 0, overflow: "hidden" }}>
-                    🌿
-                  </div>
+                  <div style={{ width: 80, height: 80, borderRadius: 12, background: "linear-gradient(135deg, var(--moss), var(--wheat))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, flexShrink: 0, overflow: "hidden" }}>🌿</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ fontSize: 16, marginBottom: 6 }}>{land.title}</h3>
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
