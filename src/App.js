@@ -229,10 +229,12 @@ const ImageGallery = ({ images }) => {
       </div>
       {images.length > 1 && (
         <div style={{ display: "grid", gridTemplateColumns: `repeat(${images.length}, 1fr)`, gap: 8, marginTop: 8 }}>
+          {/* ✅ FIX 2: Use imageUrl directly (Cloudinary full URL) */}
           {images.map((img, i) => (
+            
             <img
               key={img.id}
-              {/* ✅ FIX 2: Use imageUrl directly (Cloudinary full URL) */}
+              
               src={img.imageUrl}
               alt={`Land ${i + 1}`}
               className={`gallery-thumb ${i === active ? "active" : ""}`}
