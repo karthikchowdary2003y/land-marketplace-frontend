@@ -500,14 +500,13 @@ const cardImage = land.images && land.images.length > 0 ? land.images[0] : null;
     }
 
     setLoading(false);
-  }, [search, setLands, setPagination]);
+}, [search, setLands, setPagination]);
 
-  useEffect(() => {
-    if (lands.length === 0) {
-      fetchLands();
-    }
-  }, [fetchLands, lands.length]);
-
+useEffect(() => {
+  if (lands.length === 0) {
+    fetchLands();
+  }
+}, [fetchLands, lands.length]);
   return (
     <div className="page">
       <div style={{ background: "linear-gradient(135deg, var(--earth) 0%, var(--soil) 60%, var(--clay) 100%)", color: "white", padding: "60px 0 40px" }}>
