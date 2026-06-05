@@ -411,13 +411,7 @@ const LandMap = ({ lands, setSelectedLand, setPage }) => {
 
 // ─── LAND CARD ────────────────────────────────────────────────────────────────
 const LandCard = ({ land, onClick }) => {
-  const [cardImage, setCardImage] = useState(null);
-
-  useEffect(() => {
-    api.get(`/images/land/${land.id}`).then(res => {
-      if (res.success && res.data && res.data.length > 0) setCardImage(res.data[0]);
-    });
-  }, [land.id]);
+const cardImage = land.images && land.images.length > 0 ? land.images[0] : null;
 
   const statusBadge = { AVAILABLE: { cls: "badge-green", label: "Available" }, SOLD: { cls: "badge-red", label: "Sold" }, UNDER_NEGOTIATION: { cls: "badge-orange", label: "Negotiating" } }[land.status] || { cls: "badge-green", label: land.status };
 
@@ -426,7 +420,7 @@ const LandCard = ({ land, onClick }) => {
       <div style={{ height: 180, position: "relative", overflow: "hidden" }}>
         {cardImage ? (
           // ✅ FIX 5: Use imageUrl directly (Cloudinary full URL)
-          <img src={cardImage.imageUrl} alt={land.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <img src={cardImage} alt={land.title}style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ height: "100%", background: "linear-gradient(135deg, var(--moss) 0%, var(--sage) 50%, var(--wheat) 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ fontSize: 48 }}>🌿</span>
@@ -455,13 +449,12 @@ const LandCard = ({ land, onClick }) => {
 };
 
 // ─── HOME PAGE ────────────────────────────────────────────────────────────────
-const HomePage = ({ setPage, setSelectedLand }) => {
-  const [lands, setLands] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const HomePage = ({ setPage, setSelectedLand, lands, setLands, pagination, setPagination }) => {
+  const [loading, setLoading] = useState(lands.length === 0);
   const [view, setView] = useState("list");
   const [search, setSearch] = useState({ city: "", state: "", landType: "" });
-  const [pagination, setPagination] = useState({ page: 0, totalPages: 0, totalElements: 0 });
-
+ 
   const fetchLands = useCallback(async (pageNum = 0) => {
     setLoading(true);
     try {
@@ -478,7 +471,7 @@ const HomePage = ({ setPage, setSelectedLand }) => {
     setLoading(false);
   }, [search]);
 
-  useEffect(() => { fetchLands(); }, [fetchLands]);
+  useEffect(() => { if (lands.length === 0) fetchLands(); }, [fetchLands]);
 
   return (
     <div className="page">
@@ -1142,6 +1135,8 @@ export default function App() {
 
   const [selectedLand, setSelectedLand] = useState(null);
   const [editLand, setEditLand] = useState(null);
+const [lands, setLands] = useState([]);
+const [pagination, setPagination] = useState({ page: 0, totalPages: 0, totalElements: 0 });
   const [toast, setToast] = useState(null);
 
   const [authState, setAuthState] = useState(() => {
@@ -1174,7 +1169,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
-      case "home": return <HomePage setPage={setPage} setSelectedLand={setSelectedLand} />;
+      case "home": return <HomePage setPage={setPage} setSelectedLand={setSelectedLand} lands={lands} setLands={setLands} pagination={pagination} setPagination={setPagination} />;
       case "land-detail": return <LandDetail land={selectedLand} setPage={setPage} showToast={showToast} />;
       case "login": return <LoginPage setPage={setPage} showToast={showToast} />;
       case "register": return <RegisterPage setPage={setPage} showToast={showToast} />;
