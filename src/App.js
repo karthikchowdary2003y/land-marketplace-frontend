@@ -450,28 +450,63 @@ const cardImage = land.images && land.images.length > 0 ? land.images[0] : null;
 
 // ─── HOME PAGE ────────────────────────────────────────────────────────────────
 
-  const HomePage = ({ setPage, setSelectedLand, lands, setLands, pagination, setPagination }) => {
+ const HomePage = ({
+  setPage,
+  setSelectedLand,
+  lands,
+  setLands,
+  pagination,
+  setPagination
+}) => {
   const [loading, setLoading] = useState(lands.length === 0);
   const [view, setView] = useState("list");
-  const [search, setSearch] = useState({ city: "", state: "", landType: "" });
- 
+  const [search, setSearch] = useState({
+    city: "",
+    state: "",
+    landType: ""
+  });
+
   const fetchLands = useCallback(async (pageNum = 0) => {
     setLoading(true);
+
     try {
-      const params = new URLSearchParams({ page: pageNum, size: 9, sortBy: "createdAt" });
-      Object.entries(search).forEach(([k, v]) => v && params.append(k, v));
+      const params = new URLSearchParams({
+        page: pageNum,
+        size: 9,
+        sortBy: "createdAt",
+      });
+
+      Object.entries(search).forEach(([k, v]) => {
+        if (v) params.append(k, v);
+      });
+
       const isSearch = Object.values(search).some(Boolean);
-      const endpoint = isSearch ? `/lands/search?${params}` : `/lands?${params}`;
+      const endpoint = isSearch
+        ? `/lands/search?${params}`
+        : `/lands?${params}`;
+
       const res = await api.get(endpoint);
+
       if (res.success) {
         setLands(res.data.content || []);
-        setPagination({ page: pageNum, totalPages: res.data.totalPages, totalElements: res.data.totalElements });
+        setPagination({
+          page: pageNum,
+          totalPages: res.data.totalPages,
+          totalElements: res.data.totalElements,
+        });
       }
-    } catch (e) { console.error(e); }
-    setLoading(false);
-  }, [search]);
+    } catch (e) {
+      console.error(e);
+    }
 
-  useEffect(() => { if (lands.length === 0) fetchLands(); }, [fetchLands]);
+    setLoading(false);
+  }, [search, setLands, setPagination]);
+
+  useEffect(() => {
+    if (lands.length === 0) {
+      fetchLands();
+    }
+  }, [fetchLands, lands.length]);
 
   return (
     <div className="page">
