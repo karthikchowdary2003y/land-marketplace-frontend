@@ -500,13 +500,11 @@ const cardImage = land.images && land.images.length > 0 ? land.images[0] : null;
     }
 
     setLoading(false);
-}, [search, setLands, setPagination]);
+}, [search]);
 
 useEffect(() => {
-  if (lands.length === 0) {
-    fetchLands();
-  }
-}, []); // empty deps — only fetch once on first mount
+  fetchLands();
+}, []);
 
   return (
     <div className="page">
