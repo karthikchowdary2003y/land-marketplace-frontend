@@ -458,7 +458,7 @@ const cardImage = land.images && land.images.length > 0 ? land.images[0] : null;
   pagination,
   setPagination
 }) => {
-  const [loading, setLoading] = useState(lands.length === 0);
+const [loading, setLoading] = useState(true);
   const [view, setView] = useState("list");
   const [search, setSearch] = useState({
     city: "",
@@ -487,25 +487,24 @@ const cardImage = land.images && land.images.length > 0 ? land.images[0] : null;
 
       const res = await api.get(endpoint);
 
-      if (res.success) {
-        setLands(res.data.content || []);
-        setPagination({
-          page: pageNum,
-          totalPages: res.data.totalPages,
-          totalElements: res.data.totalElements,
-        });
-      }
-    } catch (e) {
-      console.error(e);
-    }
+ if (res.success) {
+  setLands(res.data.content || []);
+  setPagination({
+    page: pageNum,
+    totalPages: res.data.totalPages,
+    totalElements: res.data.totalElements,
+  });
+} else {
+  // API failed - retry once after 2 seconds
+  setTimeout(() => fetchLands(pageNum), 2000);
+}
 
     setLoading(false);
-}, [search]);
+}, [JSON.stringify(search)]);
 
 useEffect(() => {
   fetchLands();
-}, []);
-
+}, []);  // eslint-disable-line
   return (
     <div className="page">
       <div style={{ background: "linear-gradient(135deg, var(--earth) 0%, var(--soil) 60%, var(--clay) 100%)", color: "white", padding: "60px 0 40px" }}>
