@@ -506,7 +506,8 @@ useEffect(() => {
   if (lands.length === 0) {
     fetchLands();
   }
-}, [fetchLands, lands.length]);
+}, []); // empty deps — only fetch once on first mount
+
   return (
     <div className="page">
       <div style={{ background: "linear-gradient(135deg, var(--earth) 0%, var(--soil) 60%, var(--clay) 100%)", color: "white", padding: "60px 0 40px" }}>
@@ -897,7 +898,7 @@ const RegisterPage = ({ setPage, showToast }) => {
 };
 
 // ─── POST LAND ────────────────────────────────────────────────────────────────
-const PostLandPage = ({ setPage, showToast, editLand = null }) => {
+const PostLandPage = ({ setPage, showToast, editLand = null, setLands }) => {
   const { token } = useAuth();
   const [form, setForm] = useState(editLand || { title: "", description: "", price: "", address: "", city: "", state: "", pincode: "", latitude: "", longitude: "", areaInAcres: "", landType: "AGRICULTURAL", status: "AVAILABLE", surveyNumber: "", documentNumber: "", roadAccess: "VILLAGE_ROAD", waterSource: false, electricity: false, fencing: false });
   const [loading, setLoading] = useState(false);
@@ -922,12 +923,13 @@ const PostLandPage = ({ setPage, showToast, editLand = null }) => {
     const body = { ...form, price: Number(form.price), areaInAcres: Number(form.areaInAcres), latitude: Number(form.latitude) || 0, longitude: Number(form.longitude) || 0 };
     const res = editLand ? await api.put(`/lands/${editLand.id}`, body, token) : await api.post("/lands", body, token);
     setLoading(false);
-    if (res.success) {
-      const landId = editLand ? editLand.id : res.data?.id;
-      setSavedLandId(landId);
-      showToast(editLand ? "Land updated! Now add photos 📸" : "Land posted! Now add photos 📸", "success");
-      setStep(2);
-    } else showToast(res.message || "Failed", "error");
+   if (res.success) {
+  const landId = editLand ? editLand.id : res.data?.id;
+  setSavedLandId(landId);
+  setLands([]); // clear cache so home page refetches fresh data
+  showToast(editLand ? "Land updated! Now add photos 📸" : "Land posted! Now add photos 📸", "success");
+  setStep(2);
+} else showToast(res.message || "Failed", "error");
   };
 
   const F = (field) => ({ value: form[field], onChange: (e) => setForm({ ...form, [field]: e.target.value }) });
@@ -1209,8 +1211,8 @@ const [pagination, setPagination] = useState({ page: 0, totalPages: 0, totalElem
       case "register": return <RegisterPage setPage={setPage} showToast={showToast} />;
       case "forgot-password": return <ForgotPasswordPage setPage={setPage} showToast={showToast} />;
       case "reset-password": return <ResetPasswordPage setPage={setPage} showToast={showToast} resetToken={resetToken} />;
-      case "post-land": return <PostLandPage setPage={setPage} showToast={showToast} />;
-      case "edit-land": return <PostLandPage setPage={setPage} showToast={showToast} editLand={editLand} />;
+case "post-land": return <PostLandPage setPage={setPage} showToast={showToast} setLands={setLands} />;
+case "edit-land": return <PostLandPage setPage={setPage} showToast={showToast} editLand={editLand} setLands={setLands} />;
       case "my-listings": return <MyListingsPage setPage={setPage} setSelectedLand={setSelectedLand} setEditLand={setEditLand} showToast={showToast} />;
       case "profile": return <ProfilePage showToast={showToast} />;
       default: return <HomePage setPage={setPage} setSelectedLand={setSelectedLand} />;
