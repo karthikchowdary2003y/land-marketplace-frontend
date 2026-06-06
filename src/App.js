@@ -465,42 +465,45 @@ const [loading, setLoading] = useState(true);
     state: "",
     landType: ""
   });
-
-  const fetchLands = useCallback(async (pageNum = 0) => {
-    setLoading(true);
-
-    try {
-      const params = new URLSearchParams({
+const fetchLands = useCallback(async (pageNum = 0, retryCount = 0) => {
+  setLoading(true);
+  try {
+    const params = new URLSearchParams({
+      page: pageNum,
+      size: 9,
+      sortBy: "createdAt",
+    });
+    Object.entries(search).forEach(([k, v]) => {
+      if (v) params.append(k, v);
+    });
+    const isSearch = Object.values(search).some(Boolean);
+    const endpoint = isSearch ? `/lands/search?${params}` : `/lands?${params}`;
+    const res = await api.get(endpoint);
+    if (res.success) {
+      setLands(res.data.content || []);
+      setPagination({
         page: pageNum,
-        size: 9,
-        sortBy: "createdAt",
+        totalPages: res.data.totalPages,
+        totalElements: res.data.totalElements,
       });
-
-      Object.entries(search).forEach(([k, v]) => {
-        if (v) params.append(k, v);
-      });
-
-      const isSearch = Object.values(search).some(Boolean);
-      const endpoint = isSearch
-        ? `/lands/search?${params}`
-        : `/lands?${params}`;
-
-      const res = await api.get(endpoint);
-
- if (res.success) {
-  setLands(res.data.content || []);
-  setPagination({
-    page: pageNum,
-    totalPages: res.data.totalPages,
-    totalElements: res.data.totalElements,
-  });
-} else {
-  // API failed - retry once after 2 seconds
-  setTimeout(() => fetchLands(pageNum), 2000);
-}
-
-    setLoading(false);
-}, [JSON.stringify(search)]);
+      setLoading(false);
+    } else {
+      // Auto retry up to 3 times with 2 second delay
+      if (retryCount < 3) {
+        setTimeout(() => fetchLands(pageNum, retryCount + 1), 2000);
+      } else {
+        setLoading(false);
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    if (retryCount < 3) {
+      setTimeout(() => fetchLands(pageNum, retryCount + 1), 2000);
+    } else {
+      setLoading(false);
+    }
+  }
+}, [search]);
 
 useEffect(() => {
   fetchLands();
