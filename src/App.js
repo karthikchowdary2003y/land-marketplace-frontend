@@ -683,7 +683,13 @@ const LandDetail = ({ land, setPage, showToast }) => {
             )}
             <div className="card" style={{ padding: 24 }}>
               <h3 style={{ marginBottom: 16, fontSize: 18 }}>💬 Send Inquiry</h3>
-              {sent ? (
+              {user && land.owner && user.id === land.owner.id ? (
+                <div style={{ textAlign: "center", padding: 20, background: "var(--light)", borderRadius: 10 }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>🏡</div>
+                  <p style={{ fontWeight: 600, color: "var(--soil)" }}>This is your listing</p>
+                  <p style={{ fontSize: 13, color: "var(--gray)", marginTop: 4 }}>Buyers will contact you directly</p>
+                </div>
+              ) : sent ? (
                 <div style={{ textAlign: "center", padding: 20 }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
                   <p style={{ fontWeight: 600, color: "var(--green)" }}>Inquiry sent!</p>
@@ -709,7 +715,6 @@ const LandDetail = ({ land, setPage, showToast }) => {
     </div>
   );
 };
-
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
 const LoginPage = ({ setPage, showToast }) => {
   const { login } = useAuth();
