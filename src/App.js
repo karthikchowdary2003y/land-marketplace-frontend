@@ -411,7 +411,19 @@ const LandMap = ({ lands, setSelectedLand, setPage }) => {
 
 // ─── LAND CARD ────────────────────────────────────────────────────────────────
 const LandCard = ({ land, onClick }) => {
-const cardImage = land.images && land.images.length > 0 ? land.images[0] : null;
+  const [cardImage, setCardImage] = useState(null);
+
+  useEffect(() => {
+    if (land.images && land.images.length > 0) {
+      setCardImage(land.images[0]);
+    } else {
+      api.get(`/images/land/${land.id}`).then(res => {
+        if (res.success && res.data && res.data.length > 0) {
+          setCardImage(res.data[0].imageUrl);
+        }
+      });
+    }
+  }, [land.id]);
 
   const statusBadge = { AVAILABLE: { cls: "badge-green", label: "Available" }, SOLD: { cls: "badge-red", label: "Sold" }, UNDER_NEGOTIATION: { cls: "badge-orange", label: "Negotiating" } }[land.status] || { cls: "badge-green", label: land.status };
 
