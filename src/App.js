@@ -423,6 +423,7 @@ const LandCard = ({ land, onClick }) => {
         }
       });
     }
+ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [land.id]);
 
   const statusBadge = { AVAILABLE: { cls: "badge-green", label: "Available" }, SOLD: { cls: "badge-red", label: "Sold" }, UNDER_NEGOTIATION: { cls: "badge-orange", label: "Negotiating" } }[land.status] || { cls: "badge-green", label: land.status };
