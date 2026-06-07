@@ -503,7 +503,7 @@ const fetchLands = useCallback(async (pageNum = 0, retryCount = 0) => {
       setLoading(false);
     }
   }
-}, [search]);
+}, [search, setLands, setPagination]);
 
 useEffect(() => {
   fetchLands();
