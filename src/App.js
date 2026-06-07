@@ -503,7 +503,8 @@ const fetchLands = useCallback(async (pageNum = 0, retryCount = 0) => {
       setLoading(false);
     }
   }
-}, [search, setLands, setPagination]);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [search]);
 
 useEffect(() => {
   fetchLands();
